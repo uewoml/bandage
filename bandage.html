@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>밴드 곡 마일리지 투표</title>
+  <style>
+    :root {
+      --primary: #4A90E2;
+      --bg: #F4F7F6;
+      --card-bg: #FFFFFF;
+      --text: #333333;
+    }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    h1, h2, h3 { color: #1A252C; }
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #EEE;
+      padding-bottom: 10px;
+    }
+    .tab-btn {
+      padding: 10px 20px;
+      border: none;
+      background: #E0E6ED;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+    .page { display: none; }
+    .page.active { display: block; }
+    
+    /* Form Style */
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #CCC;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    button.btn-main {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+
+    /* Track Box */
+    .track-card {
+      border: 1px solid #E1E8ED;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #FAFBFD;
+    }
+    .session-badge-group {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 5px;
+    }
+    .badge {
+      background: #E1F0FF;
+      color: #0066CC;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* Vote UI */
+    .mileage-header {
+      position: sticky;
+      top: 0;
+      background: #FFF9E6;
+      border: 1px solid #FFE58F;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    .session-select-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    /* Admin Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #DDD;
+      padding: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+    th { background: #F2F4F8; }
+    
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .checkbox-group label {
+      font-weight: normal;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 역할 선택 탭 -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchPage('admin-page')">👑 방장(설정/결과)</button>
+    <button class="tab-btn" onclick="switchPage('member-page')">🎸 부원(마일리지 투표)</button>
+  </div>
+
+  <!-- 1. 방장 페이지 -->
+  <div id="admin-page" class="page active">
+    <h2>곡 및 세션 설정 (방장용)</h2>
+    <div style="background: #F0F4F8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <h3>➕ 새 곡 추가하기</h3>
+      <div class="form-group">
+        <label>곡 제목</label>
+        <input type="text" id="song-title" placeholder="예: 사건의 지평선">
+      </div>
+      <div class="form-group">
+        <label>가수명</label>
+        <input type="text" id="song-artist" placeholder="예: 윤하">
+      </div>
+      <div class="form-group">
+        <label>필요 세션 선택 (기타1, 기타2 구분)</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" class="session-checkbox" value="보컬"> 보컬</label>
+          <label><input type="checkbox" class="session-checkbox" value="기타1" checked> 기타1</label>
+          <label><input type="checkbox" class="session-checkbox" value="기타2" checked> 기타2</label>
+          <label><input type="checkbox" class="session-checkbox" value="베이스" checked> 베이스</label>
+          <label><input type="checkbox" class="session-checkbox" value="드럼" checked> 드럼</label>
+          <label><input type="checkbox" class="session-checkbox" value="건반1" checked> 건반1</label>
+          <label><input type="checkbox" class="session-checkbox" value="건반2"> 건반2</label>
+        </div>
+      </div>
+      <button class="btn-main" onclick="addSong()">곡 목록에 추가</button>
+    </div>
+
+    <h3>🎵 등록된 곡 목록</h3>
+    <div id="admin-song-list"></div>
+
+    <hr style="margin: 30px 0;">
+
+    <h2>📊 실시간 투표 현황 (방장 전용 드롭다운/상세보기)</h2>
+    <p style="color: #666; font-size: 14px;">※ 부원들의 닉네임과 상세 투표 내역은 방장에게만 공개됩니다.</p>
+    <div id="admin-results"></div>
+  </div>
+
+  <!-- 2. 부원 페이지 -->
+  <div id="member-page" class="page">
+    <h2>연세대 마일리지 방식 곡 신청</h2>
+    
+    <div class="form-group" style="background: #EBF8FF; padding: 15px; border-radius: 8px;">
+      <label for="member-name">👤 부원 닉네임 / 이름</label>
+      <input type="text" id="member-name" placeholder="이름을 입력하세요 (예: 김기타)">
+    </div>
+
+    <div class="mileage-header">
+      💰 남은 마일리지: <span id="remaining-mileage" style="font-size: 20px; color: #D9363E;">10</span> / 10 pt
+      <br><small style="font-weight: normal; color: #555;">(한 항목당 1~5 마일리지까지 투자 가능합니다)</small>
+    </div>
+
+    <form id="vote-form">
+      <div id="member-song-list"></div>
+      <button type="button" class="btn-main" onclick="submitVote()" style="margin-top: 20px;">마일리지 제출하기</button>
+    </form>
+  </div>
+</div>
+
+<!-- Firebase 연동 자바스크립트 전체 -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { 
+    getFirestore, doc, setDoc, getDoc, addDoc, collection, onSnapshot 
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // 🔴 Firebase 콘솔에서 복사한 설정 키 값들로 지우고 채워넣어 주세요!
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXTZADY2wq3WVLYTHXVkGTUkqhTx0qOJw",
+    authDomain: "bandage-35edd.firebaseapp.com",
+    projectId: "bandage-35edd",
+    storageBucket: "bandage-35edd.firebasestorage.app",
+    messagingSenderId: "300037633511",
+    appId: "1:300037633511:web:f57df6125a74783ec0f942"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
+
+  // Firebase 초기화
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let songs = [];
+  let votes = [];
+  let currentRoomId = null;
+
+  // HTML onclick 이벤트용 전역 연결
+  window.switchPage = switchPage;
+  window.addSong = addSong;
+  window.submitVote = submitVote;
+  window.calculateMileage = calculateMileage;
+
+  // 페이지 진입 시 URL 확인 (링크 공유 접속 처리)
+  window.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room');
+
+    if (roomId) {
+      currentRoomId = roomId;
+      await loadRoomData(roomId);
+    }
+  });
+
+  // [방장] 방 생성 및 곡 정보 저장
+  async function createRoomAndSave() {
+    if (songs.length === 0) {
+      alert("최소 1개 이상의 곡을 등록해 주세요.");
+      return;
+    }
+
+    const roomId = Math.random().toString(36).substring(2, 9);
+    try {
+      await setDoc(doc(db, "rooms", roomId), {
+        songs: songs,
+        createdAt: new Date()
+      });
+
+      const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+      prompt("방이 생성되었습니다! 이 링크를 부원들에게 공유하세요:", shareUrl);
+      window.location.href = shareUrl;
+    } catch (e) {
+      alert("방 생성 실패: " + e.message);
+    }
+  }
+
+  // 데이터 불러오기 및 실시간 동기화
+  async function loadRoomData(roomId) {
+    const roomDoc = await getDoc(doc(db, "rooms", roomId));
+    if (!roomDoc.exists()) {
+      alert("존재하지 않는 방입니다.");
+      return;
+    }
+
+    songs = roomDoc.data().songs;
+    renderAdminSongs();
+    renderMemberSongs();
+
+    // 실시간으로 제출된 마일리지 투표 동기화
+    onSnapshot(collection(db, "rooms", roomId, "votes"), (snapshot) => {
+      votes = [];
+      snapshot.forEach(doc => votes.push(doc.data()));
+      renderAdminResults();
+    });
+  }
+
+  // 탭 전환
+  function switchPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    const targetPage = document.getElementById(pageId);
+    if(targetPage) targetPage.classList.add('active');
+    if(event && event.target) event.target.classList.add('active');
+
+    if (pageId === 'member-page') renderMemberSongs();
+    if (pageId === 'admin-page') renderAdminResults();
+  }
+
+  // [방장] 곡 추가
+  function addSong() {
+    const title = document.getElementById('song-title').value.trim();
+    const artist = document.getElementById('song-artist').value.trim();
+    const checkedSessions = Array.from(document.querySelectorAll('.session-checkbox:checked')).map(cb => cb.value);
+
+    if (!title || !artist) { alert("곡 제목과 가수를 입력해주세요."); return; }
+    if (checkedSessions.length === 0) { alert("최소 하나 이상의 세션을 선택해주세요."); return; }
+
+    songs.push({ id: Date.now(), title, artist, sessions: checkedSessions });
+    document.getElementById('song-title').value = '';
+    document.getElementById('song-artist').value = '';
+    
+    renderAdminSongs();
+    alert("곡이 목록에 추가되었습니다. 완료되면 맨 아래 '링크 생성' 버튼을 누르세요.");
+  }
+
+  // [방장] 곡 목록 렌더링
+  function renderAdminSongs() {
+    const container = document.getElementById('admin-song-list');
+    container.innerHTML = songs.map(song => `
+      <div class="track-card">
+        <strong>${song.title}</strong> - ${song.artist}
+        <div class="session-badge-group">
+          ${song.sessions.map(s => `<span class="badge">${s}</span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    if (!document.getElementById('btn-share-room') && songs.length > 0) {
+      const btn = document.createElement('button');
+      btn.id = 'btn-share-room';
+      btn.className = 'btn-main';
+      btn.style.marginTop = '15px';
+      btn.style.background = '#059669';
+      btn.innerText = '🚀 링크 생성하고 부원들에게 공유하기';
+      btn.onclick = createRoomAndSave;
+      container.appendChild(btn);
+    }
+  }
+
+  // [부원] 곡 목록 렌더링
+  function renderMemberSongs() {
+    const container = document.getElementById('member-song-list');
+    if (songs.length === 0) {
+      container.innerHTML = "<p style='color:#666;'>등록된 곡이 없습니다. 방장이 보낸 공유 링크로 접속하셨는지 확인해주세요!</p>";
+      return;
+    }
+    container.innerHTML = songs.map(song => `
+      <div class="track-card">
+        <h3>${song.title} <small style="font-size:14px; color:#666;">(${song.artist})</small></h3>
+        <p style="font-size: 13px; color:#888;">희망하는 세션에 마일리지를 투자하세요 (1~5점)</p>
+        <div class="session-select-group">
+          ${song.sessions.map(session => `
+            <div>
+              <label style="font-size:14px;">${session}</label>
+              <select class="mileage-input" data-key="${song.id}_${session}" onchange="calculateMileage()">
+                <option value="0">0 pt</option>
+                <option value="1">1 pt</option>
+                <option value="2">2 pt</option>
+                <option value="3">3 pt</option>
+                <option value="4">4 pt</option>
+                <option value="5">5 pt</option>
+              </select>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+    calculateMileage();
+  }
+
+  // [부원] 마일리지 10점 실시간 제한 계산
+  function calculateMileage() {
+    let totalUsed = 0;
+    document.querySelectorAll('.mileage-input').forEach(input => totalUsed += parseInt(input.value));
+
+    const remaining = 10 - totalUsed;
+    const remainingSpan = document.getElementById('remaining-mileage');
+    if (remainingSpan) {
+      remainingSpan.innerText = remaining;
+      remainingSpan.style.color = remaining < 0 ? "red" : "#D9363E";
+    }
+
+    if (remaining < 0) {
+      alert("총 마일리지 10점을 초과했습니다!");
+    }
+  }
+
+  // [부원] 제출하기 (Firebase에 투표 데이터 저장)
+  async function submitVote() {
+    if (!currentRoomId) {
+      alert("방장에게 받은 전용 링크로 들어오셔야 제출이 가능합니다!");
+      return;
+    }
+
+    const name = document.getElementById('member-name').value.trim();
+    if (!name) { alert("닉네임을 입력해주세요!"); return; }
+
+    let totalUsed = 0;
+    let voteData = {};
+
+    document.querySelectorAll('.mileage-input').forEach(input => {
+      const val = parseInt(input.value);
+      if (val > 0) {
+        voteData[input.dataset.key] = val;
+        totalUsed += val;
+      }
+    });
+
+    if (totalUsed > 10) { alert("마일리지는 최대 10점까지만 사용 가능합니다."); return; }
+    if (totalUsed === 0) { alert("최소 1점 이상의 마일리지를 투자해 주세요."); return; }
+
+    try {
+      await addDoc(collection(db, "rooms", currentRoomId, "votes"), {
+        name: name,
+        votes: voteData,
+        createdAt: new Date()
+      });
+
+      alert(`[${name}] 님의 마일리지 투표가 정상 제출되었습니다!`);
+      document.getElementById('member-name').value = '';
+      renderMemberSongs();
+    } catch (e) {
+      alert("제출 실패: " + e.message);
+    }
+  }
+
+  // [방장 전용] 결과 테이블 및 지원자 드롭다운 렌더링
+  function renderAdminResults() {
+    const container = document.getElementById('admin-results');
+    if (votes.length === 0) {
+      container.innerHTML = "<p style='color:#666;'>아직 제출된 마일리지 투표가 없습니다.</p>";
+      return;
+    }
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>곡명</th>
+            <th>세션</th>
+            <th>총 마일리지</th>
+            <th>지원자 명단 (방장 전용 드롭다운)</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    songs.forEach(song => {
+      song.sessions.forEach(session => {
+        const key = `${song.id}_${session}`;
+        let totalScore = 0;
+        let applicants = [];
+
+        votes.forEach(v => {
+          if (v.votes && v.votes[key]) {
+            totalScore += v.votes[key];
+            applicants.push({ name: v.name, score: v.votes[key] });
+          }
+        });
+
+        applicants.sort((a, b) => b.score - a.score);
+
+        html += `
+          <tr>
+            <td><strong>${song.title}</strong></td>
+            <td><span class="badge">${session}</span></td>
+            <td><strong>${totalScore} pt</strong> (${applicants.length}명 지원)</td>
+            <td>
+              <select style="width: 100%;">
+                <option value="">▼ 지원자 상세 내역 (${applicants.length}명)</option>
+                ${applicants.length > 0 
+                  ? applicants.map((app, idx) => `<option disabled>${idx+1}위: ${app.name} (${app.score}pt)</option>`).join('')
+                  : '<option disabled>지원자 없음</option>'
+                }
+              </select>
+            </td>
+          </tr>
+        `;
+      });
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+  }
+</script>
+
+</body>
+</html>
